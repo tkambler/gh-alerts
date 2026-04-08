@@ -17,7 +17,7 @@ import {
   Paper,
   Link,
 } from '@mui/material';
-import type { Config, PreflightResult, RepositoryPullRequests } from '../../types';
+import type { Config, PreflightResult, PullRequest, RepositoryPullRequests } from '../../types';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -44,11 +44,42 @@ function formatAge(iso: string): string {
   return `${years} year${years === 1 ? '' : 's'}`;
 }
 
-function dataChanged(
+interface PrDiff {
+  changed: boolean;
+  newPrs: PullRequest[];
+  closedPrCount: number;
+}
+
+function diffData(
   prev: RepositoryPullRequests[] | null,
   next: RepositoryPullRequests[],
-): boolean {
-  return JSON.stringify(prev) !== JSON.stringify(next);
+): PrDiff {
+  if (prev === null) return { changed: false, newPrs: [], closedPrCount: 0 };
+  const prevIds = new Set(prev.flatMap((r) => r.pullRequests.map((pr) => pr.id)));
+  const nextIds = new Set(next.flatMap((r) => r.pullRequests.map((pr) => pr.id)));
+  const newPrs = next.flatMap((r) => r.pullRequests.filter((pr) => !prevIds.has(pr.id)));
+  const closedPrCount = [...prevIds].filter((id) => !nextIds.has(id)).length;
+  const changed =
+    newPrs.length > 0 ||
+    closedPrCount > 0 ||
+    JSON.stringify(prev) !== JSON.stringify(next);
+  return { changed, newPrs, closedPrCount };
+}
+
+function notifyOS(diff: PrDiff): void {
+  let body: string;
+  if (diff.newPrs.length === 1 && diff.closedPrCount === 0) {
+    body = `New PR: ${diff.newPrs[0].title}`;
+  } else if (diff.newPrs.length > 0 && diff.closedPrCount > 0) {
+    body = `${diff.newPrs.length} new, ${diff.closedPrCount} closed`;
+  } else if (diff.newPrs.length > 0) {
+    body = `${diff.newPrs.length} new pull request${diff.newPrs.length > 1 ? 's' : ''}`;
+  } else if (diff.closedPrCount > 0) {
+    body = `${diff.closedPrCount} pull request${diff.closedPrCount > 1 ? 's' : ''} closed`;
+  } else {
+    body = 'Pull requests updated';
+  }
+  new window.Notification('gh-alerts', { body });
 }
 
 function StatusChip({ status }: { status: string }): JSX.Element | null {
@@ -157,12 +188,13 @@ export default function App(): JSX.Element {
     window.api
       .fetchPullRequests(config)
       .then((data) => {
-        const changed = dataChanged(lastDataRef.current, data);
+        const diff = diffData(lastDataRef.current, data);
         setRepos(data);
         lastDataRef.current = data;
-        if (changed) {
+        if (diff.changed) {
           ping.currentTime = 0;
           ping.play();
+          notifyOS(diff);
         }
       })
       .catch((err) => setPrError(String(err)))
