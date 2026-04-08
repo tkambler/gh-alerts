@@ -38,76 +38,86 @@ function StatusChip({ status }: { status: string }): JSX.Element | null {
   return <Chip label={status} size="small" color={colorMap[status] ?? 'default'} />;
 }
 
-function RepoTable({ data }: { data: RepositoryPullRequests }): JSX.Element {
-  const { repo, pullRequests } = data;
+function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Element {
+  const rows = repos
+    .flatMap((data) =>
+      data.pullRequests.map((pr) => ({
+        ...pr,
+        repoLabel: data.label ?? `${data.repo.owner}/${data.repo.name}`,
+        repoUrl: `https://github.com/${data.repo.owner}/${data.repo.name}`,
+      })),
+    )
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  if (rows.length === 0) {
+    return <Typography color="text.secondary">No open pull requests.</Typography>;
+  }
+
   return (
-    <Stack spacing={0.5}>
-      <Typography variant="h6" sx={{ lineHeight: 1, px: '15px', pt: '10px', pb: '4px' }}>
-        {data.label ?? `${repo.owner}/${repo.name}`}
-      </Typography>
-      {pullRequests.length === 0 ? (
-        <Typography color="text.secondary">No open pull requests.</Typography>
-      ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ borderLeft: 'none', borderRight: 'none', borderRadius: 0 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ backgroundColor: '#F0F0F0' }}>
-                <TableCell>#</TableCell>
-                <TableCell>Title</TableCell>
-                <TableCell>State</TableCell>
-                <TableCell>Draft</TableCell>
-                <TableCell>Author</TableCell>
-                <TableCell align="right">Additions</TableCell>
-                <TableCell align="right">Deletions</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell>Updated At</TableCell>
-                <TableCell>Ref</TableCell>
-                <TableCell align="right">Comments</TableCell>
-                <TableCell>Labels</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {pullRequests.map((pr, index) => (
-                <TableRow key={pr.number} sx={{ backgroundColor: index % 2 === 0 ? '#fff' : '#F4F7FA' }}>
-                  <TableCell>
-                    <Link href={pr.url} target="_blank" rel="noopener" underline="hover">
-                      {pr.number}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={pr.url} target="_blank" rel="noopener" underline="hover">
-                      {pr.title}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{pr.state}</TableCell>
-                  <TableCell>{pr.draft ? 'Yes' : 'No'}</TableCell>
-                  <TableCell>{pr.author}</TableCell>
-                  <TableCell align="right">{pr.additions}</TableCell>
-                  <TableCell align="right">{pr.deletions}</TableCell>
-                  <TableCell>{formatDate(pr.createdAt)}</TableCell>
-                  <TableCell>{formatDate(pr.updatedAt)}</TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                    {pr.headRefName}
-                  </TableCell>
-                  <TableCell align="right">{pr.comments}</TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                      {pr.labels.map((label) => (
-                        <Chip key={label} label={label} size="small" />
-                      ))}
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <StatusChip status={pr.statusCheckRollup} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </Stack>
+    <TableContainer component={Paper} variant="outlined" sx={{ borderLeft: 'none', borderRight: 'none', borderRadius: 0 }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow sx={{ backgroundColor: '#F0F0F0' }}>
+            <TableCell>Repository</TableCell>
+            <TableCell>#</TableCell>
+            <TableCell>Title</TableCell>
+            <TableCell>State</TableCell>
+            <TableCell>Draft</TableCell>
+            <TableCell>Author</TableCell>
+            <TableCell align="right">Additions</TableCell>
+            <TableCell align="right">Deletions</TableCell>
+            <TableCell>Created At</TableCell>
+            <TableCell>Updated At</TableCell>
+            <TableCell>Ref</TableCell>
+            <TableCell align="right">Comments</TableCell>
+            <TableCell>Labels</TableCell>
+            <TableCell>Status</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((pr, index) => (
+            <TableRow key={`${pr.repo.owner}/${pr.repo.name}/${pr.number}`} sx={{ backgroundColor: index % 2 === 0 ? '#fff' : '#F4F7FA' }}>
+              <TableCell>
+                <Link href={pr.repoUrl} target="_blank" rel="noopener" underline="hover">
+                  {pr.repoLabel}
+                </Link>
+              </TableCell>
+              <TableCell>
+                <Link href={pr.url} target="_blank" rel="noopener" underline="hover">
+                  {pr.number}
+                </Link>
+              </TableCell>
+              <TableCell>
+                <Link href={pr.url} target="_blank" rel="noopener" underline="hover">
+                  {pr.title}
+                </Link>
+              </TableCell>
+              <TableCell>{pr.state}</TableCell>
+              <TableCell>{pr.draft ? 'Yes' : 'No'}</TableCell>
+              <TableCell>{pr.author}</TableCell>
+              <TableCell align="right">{pr.additions}</TableCell>
+              <TableCell align="right">{pr.deletions}</TableCell>
+              <TableCell>{formatDate(pr.createdAt)}</TableCell>
+              <TableCell>{formatDate(pr.updatedAt)}</TableCell>
+              <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                {pr.headRefName}
+              </TableCell>
+              <TableCell align="right">{pr.comments}</TableCell>
+              <TableCell>
+                <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                  {pr.labels.map((label) => (
+                    <Chip key={label} label={label} size="small" />
+                  ))}
+                </Stack>
+              </TableCell>
+              <TableCell>
+                <StatusChip status={pr.statusCheckRollup} />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 
@@ -191,11 +201,7 @@ export default function App(): JSX.Element {
 
   return (
     <Container maxWidth={false} disableGutters>
-      <Stack spacing={1.5}>
-        {repos.map((data) => (
-          <RepoTable key={`${data.repo.owner}/${data.repo.name}`} data={data} />
-        ))}
-      </Stack>
+      <AllPRsTable repos={repos} />
     </Container>
   );
 }
