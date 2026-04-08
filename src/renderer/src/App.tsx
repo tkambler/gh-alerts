@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import pingUrl from './assets/ping.mp3';
 import {
   Box,
   Container,
@@ -130,7 +131,7 @@ export default function App(): JSX.Element {
   const lastDataRef = useRef<RepositoryPullRequests[] | null>(null);
 
   const fetchAndNotify = useCallback((config: Config): void => {
-    const ping = new Audio('/ping.mp3');
+    const ping = new Audio(pingUrl);
     setFetching(true);
     window.api
       .fetchPullRequests(config)

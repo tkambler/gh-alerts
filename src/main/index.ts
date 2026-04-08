@@ -15,11 +15,36 @@ import type {
 
 const execFileAsync = promisify(execFile);
 
+const GH_CANDIDATE_PATHS = [
+  '/opt/homebrew/bin/gh',
+  '/usr/local/bin/gh',
+  '/usr/bin/gh',
+];
+
+let resolvedGhPath: string | null = null;
+
+async function resolveGh(): Promise<string> {
+  if (resolvedGhPath) return resolvedGhPath;
+  for (const candidate of GH_CANDIDATE_PATHS) {
+    try {
+      await access(candidate);
+      resolvedGhPath = candidate;
+      return resolvedGhPath;
+    } catch {
+      // not found at this path
+    }
+  }
+  // fall back to relying on PATH (works in dev)
+  resolvedGhPath = 'gh';
+  return resolvedGhPath;
+}
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 1350,
     show: false,
+    icon: join(__dirname, '../../resources/logo.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -62,7 +87,8 @@ async function writeCache(data: RepositoryPullRequests[]): Promise<void> {
 
 async function checkGhCli(): Promise<boolean> {
   try {
-    await execFileAsync('gh', ['--version']);
+    const gh = await resolveGh();
+    await execFileAsync(gh, ['--version']);
     return true;
   } catch {
     return false;
@@ -136,7 +162,8 @@ async function fetchPRsForAuthor(
 ): Promise<RawPR[]> {
   const args = ['pr', 'list', '--repo', `${owner}/${name}`, '--json', JSON_FIELDS, '--limit', '25'];
   if (author) args.push('--author', author);
-  const { stdout } = await execFileAsync('gh', args);
+  const gh = await resolveGh();
+  const { stdout } = await execFileAsync(gh, args);
   return JSON.parse(stdout) as RawPR[];
 }
 
@@ -157,7 +184,8 @@ async function fetchPRsForReviewer(
     '--search',
     `review-requested:${username}`,
   ];
-  const { stdout } = await execFileAsync('gh', args);
+  const gh = await resolveGh();
+  const { stdout } = await execFileAsync(gh, args);
   return JSON.parse(stdout) as RawPR[];
 }
 
