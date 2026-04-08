@@ -1,0 +1,43 @@
+export interface RepositoryConfig {
+  url: string;
+  authors?: string[];
+}
+
+export interface Config {
+  repositories: RepositoryConfig[];
+  refreshInterval: number;
+}
+
+export interface PreflightResult {
+  config: Config | null;
+  errors: string[];
+}
+
+export interface Repository {
+  owner: string;
+  name: string;
+}
+
+export interface PullRequest {
+  id: number;
+  number: number;
+  title: string;
+  url: string;
+  state: 'open' | 'closed' | 'merged';
+  draft: boolean;
+  author: string;
+  additions: number;
+  deletions: number;
+  headRefName: string;
+  comments: number;
+  labels: string[];
+  statusCheckRollup: string;
+  repo: Repository;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RepositoryPullRequests {
+  repo: Repository;
+  pullRequests: PullRequest[];
+}
