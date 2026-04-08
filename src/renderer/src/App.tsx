@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
+  Box,
   Container,
   Typography,
   CircularProgress,
@@ -125,7 +126,26 @@ export default function App(): JSX.Element {
   const [result, setResult] = useState<PreflightResult | null>(null);
   const [repos, setRepos] = useState<RepositoryPullRequests[] | null>(null);
   const [prError, setPrError] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
   const lastDataRef = useRef<RepositoryPullRequests[] | null>(null);
+
+  const fetchAndNotify = useCallback((config: Config): void => {
+    const ping = new Audio('/ping.mp3');
+    setFetching(true);
+    window.api
+      .fetchPullRequests(config)
+      .then((data) => {
+        const changed = dataChanged(lastDataRef.current, data);
+        setRepos(data);
+        lastDataRef.current = data;
+        if (changed) {
+          ping.currentTime = 0;
+          ping.play();
+        }
+      })
+      .catch((err) => setPrError(String(err)))
+      .finally(() => setFetching(false));
+  }, []);
 
   useEffect(() => {
     window.api.preflight().then(async (r) => {
@@ -143,23 +163,7 @@ export default function App(): JSX.Element {
         return () => clearInterval(interval);
       }
     });
-  }, []);
-
-  function fetchAndNotify(config: Config): void {
-    const ping = new Audio('/ping.mp3');
-    window.api
-      .fetchPullRequests(config)
-      .then((data) => {
-        const changed = dataChanged(lastDataRef.current, data);
-        setRepos(data);
-        lastDataRef.current = data;
-        if (changed) {
-          ping.currentTime = 0;
-          ping.play();
-        }
-      })
-      .catch((err) => setPrError(String(err)));
-  }
+  }, [fetchAndNotify]);
 
   if (!result) {
     return (
@@ -200,8 +204,31 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <Container maxWidth={false} disableGutters>
-      <AllPRsTable repos={repos} />
-    </Container>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
+        <AllPRsTable repos={repos} />
+      </Box>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: 1,
+          px: 2,
+          py: 0.75,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          backgroundColor: '#F0F0F0',
+          minHeight: 36,
+        }}
+      >
+        {fetching && (
+          <>
+            <CircularProgress size={14} thickness={5} />
+            <Typography variant="caption" color="text.secondary">Updating...</Typography>
+          </>
+        )}
+      </Box>
+    </Box>
   );
 }
