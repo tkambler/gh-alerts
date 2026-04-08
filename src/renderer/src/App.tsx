@@ -29,6 +29,21 @@ function formatDate(iso: string): string {
   });
 }
 
+function formatAge(iso: string): string {
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return `${seconds} seconds`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'}`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'}`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? '' : 's'}`;
+}
+
 function dataChanged(
   prev: RepositoryPullRequests[] | null,
   next: RepositoryPullRequests[],
@@ -66,20 +81,17 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
       <Table size="small">
         <TableHead>
           <TableRow sx={{ backgroundColor: '#F0F0F0' }}>
-            <TableCell>Repository</TableCell>
-            <TableCell>#</TableCell>
-            <TableCell>Title</TableCell>
-            <TableCell>State</TableCell>
-            <TableCell>Draft</TableCell>
-            <TableCell>Author</TableCell>
-            <TableCell align="right">Additions</TableCell>
-            <TableCell align="right">Deletions</TableCell>
-            <TableCell>Created At</TableCell>
-            <TableCell>Updated At</TableCell>
-            <TableCell>Ref</TableCell>
-            <TableCell align="right">Comments</TableCell>
-            <TableCell>Labels</TableCell>
-            <TableCell>Status</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Repository</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>#</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Title</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>State</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Draft</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Author</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Created</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Updated</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Comments</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Labels</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -100,23 +112,24 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
                   {pr.title}
                 </Link>
               </TableCell>
-              <TableCell>{pr.state}</TableCell>
+              <TableCell>{pr.state.charAt(0).toUpperCase() + pr.state.slice(1)}</TableCell>
               <TableCell>{pr.draft ? 'Yes' : 'No'}</TableCell>
-              <TableCell>{pr.author}</TableCell>
-              <TableCell align="right">{pr.additions}</TableCell>
-              <TableCell align="right">{pr.deletions}</TableCell>
-              <TableCell>{formatDate(pr.createdAt)}</TableCell>
-              <TableCell>{formatDate(pr.updatedAt)}</TableCell>
-              <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                {pr.headRefName}
+              <TableCell>
+                <Link href={`https://github.com/${pr.author}`} target="_blank" rel="noopener" underline="hover">
+                  {pr.author}
+                </Link>
               </TableCell>
+              <TableCell>{formatAge(pr.createdAt)} ago</TableCell>
+              <TableCell>{formatAge(pr.updatedAt)} ago</TableCell>
               <TableCell align="right">{pr.comments}</TableCell>
               <TableCell>
-                <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                  {pr.labels.map((label) => (
-                    <Chip key={label} label={label} size="small" />
-                  ))}
-                </Stack>
+                {pr.labels.length === 0 ? '-' : (
+                  <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                    {pr.labels.map((label) => (
+                      <Chip key={label} label={label} size="small" />
+                    ))}
+                  </Stack>
+                )}
               </TableCell>
               <TableCell>
                 <StatusChip status={pr.statusCheckRollup} />
