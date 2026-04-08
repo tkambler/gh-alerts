@@ -20,7 +20,13 @@ import {
 import type { Config, PreflightResult, RepositoryPullRequests } from '../../types';
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString();
+  return new Date(iso).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 function dataChanged(
