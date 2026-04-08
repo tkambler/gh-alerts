@@ -41,8 +41,8 @@ async function resolveGh(): Promise<string> {
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 1350,
+    width: 1900,
+    height: 1100,
     show: false,
     icon: join(__dirname, '../../resources/logo.png'),
     webPreferences: {

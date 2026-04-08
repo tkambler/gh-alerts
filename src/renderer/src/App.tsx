@@ -147,6 +147,8 @@ export default function App(): JSX.Element {
   const [repos, setRepos] = useState<RepositoryPullRequests[] | null>(null);
   const [prError, setPrError] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+
   const lastDataRef = useRef<RepositoryPullRequests[] | null>(null);
 
   const fetchAndNotify = useCallback((config: Config): void => {
@@ -164,7 +166,10 @@ export default function App(): JSX.Element {
         }
       })
       .catch((err) => setPrError(String(err)))
-      .finally(() => setFetching(false));
+      .finally(() => {
+        setFetching(false);
+        setLastUpdatedAt(new Date());
+      });
   }, []);
 
   useEffect(() => {
@@ -232,7 +237,7 @@ export default function App(): JSX.Element {
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           gap: 1,
           px: 2,
           py: 0.75,
@@ -242,11 +247,14 @@ export default function App(): JSX.Element {
           minHeight: 36,
         }}
       >
+        <Typography variant="caption" color="text.secondary">
+          {lastUpdatedAt ? `Last updated: ${lastUpdatedAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ''}
+        </Typography>
         {fetching && (
-          <>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircularProgress size={14} thickness={5} />
             <Typography variant="caption" color="text.secondary">Updating...</Typography>
-          </>
+          </Box>
         )}
       </Box>
     </Box>
