@@ -108,39 +108,80 @@ function parseRepoUrl(url: string): { owner: string; name: string } {
   return { owner: match[1], name: match[2] };
 }
 
-async function fetchPrsForRepo(repo: RepositoryConfig): Promise<RepositoryPullRequests> {
-  const { owner, name } = parseRepoUrl(repo.url);
-  const { stdout } = await execFileAsync('gh', [
+type RawPR = {
+  id: number;
+  number: number;
+  title: string;
+  url: string;
+  state: string;
+  isDraft: boolean;
+  author: { login: string };
+  additions: number;
+  deletions: number;
+  headRefName: string;
+  comments: Array<unknown>;
+  labels: Array<{ name: string }>;
+  statusCheckRollup: Array<{ status: string; conclusion: string }>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const JSON_FIELDS =
+  'id,number,title,url,state,isDraft,author,additions,deletions,headRefName,comments,labels,statusCheckRollup,createdAt,updatedAt';
+
+async function fetchPRsForAuthor(
+  owner: string,
+  name: string,
+  author: string | null,
+): Promise<RawPR[]> {
+  const args = ['pr', 'list', '--repo', `${owner}/${name}`, '--json', JSON_FIELDS, '--limit', '25'];
+  if (author) args.push('--author', author);
+  const { stdout } = await execFileAsync('gh', args);
+  return JSON.parse(stdout) as RawPR[];
+}
+
+async function fetchPRsForReviewer(
+  owner: string,
+  name: string,
+  username: string,
+): Promise<RawPR[]> {
+  const args = [
     'pr',
     'list',
     '--repo',
     `${owner}/${name}`,
     '--json',
-    'id,number,title,url,state,isDraft,author,additions,deletions,headRefName,comments,labels,statusCheckRollup,createdAt,updatedAt',
+    JSON_FIELDS,
     '--limit',
-    '100',
-  ]);
-  const raw = JSON.parse(stdout) as Array<{
-    id: number;
-    number: number;
-    title: string;
-    url: string;
-    state: string;
-    isDraft: boolean;
-    author: { login: string };
-    additions: number;
-    deletions: number;
-    headRefName: string;
-    comments: Array<unknown>;
-    labels: Array<{ name: string }>;
-    statusCheckRollup: Array<{ status: string; conclusion: string }>;
-    createdAt: string;
-    updatedAt: string;
-  }>;
+    '25',
+    '--search',
+    `review-requested:${username}`,
+  ];
+  const { stdout } = await execFileAsync('gh', args);
+  return JSON.parse(stdout) as RawPR[];
+}
+
+async function fetchPrsForRepo(
+  repo: RepositoryConfig,
+  username?: string,
+): Promise<RepositoryPullRequests> {
+  const { owner, name } = parseRepoUrl(repo.url);
   const authors = repo.authors?.length ? repo.authors : null;
-  const filtered = authors
-    ? raw.filter((pr) => authors.includes(pr.author.login))
-    : raw;
+  const requests = authors
+    ? authors.map((author) => fetchPRsForAuthor(owner, name, author))
+    : [fetchPRsForAuthor(owner, name, null)];
+  if (username) requests.push(fetchPRsForReviewer(owner, name, username));
+  const results = await Promise.all(requests);
+  const seen = new Set<number>();
+  const filtered: RawPR[] = [];
+  for (const batch of results) {
+    for (const pr of batch) {
+      if (!seen.has(pr.id)) {
+        seen.add(pr.id);
+        filtered.push(pr);
+      }
+    }
+  }
   const pullRequests = filtered.map((pr) => {
     let statusCheckRollup = '';
     if (pr.statusCheckRollup.length > 0) {
@@ -174,11 +215,13 @@ async function fetchPrsForRepo(repo: RepositoryConfig): Promise<RepositoryPullRe
   pullRequests.sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
-  return { repo: { owner, name }, pullRequests };
+  return { repo: { owner, name }, label: repo.label, pullRequests };
 }
 
 async function fetchAllPullRequests(config: Config): Promise<RepositoryPullRequests[]> {
-  const results = await Promise.all(config.repositories.map(fetchPrsForRepo));
+  const results = await Promise.all(
+    config.repositories.map((repo) => fetchPrsForRepo(repo, config.username)),
+  );
   await writeCache(results);
   return results;
 }

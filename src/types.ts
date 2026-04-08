@@ -1,9 +1,11 @@
 export interface RepositoryConfig {
   url: string;
+  label?: string;
   authors?: string[];
 }
 
 export interface Config {
+  username?: string;
   repositories: RepositoryConfig[];
   refreshInterval: number;
 }
@@ -39,5 +41,6 @@ export interface PullRequest {
 
 export interface RepositoryPullRequests {
   repo: Repository;
+  label?: string;
   pullRequests: PullRequest[];
 }

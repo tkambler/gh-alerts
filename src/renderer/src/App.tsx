@@ -41,9 +41,9 @@ function StatusChip({ status }: { status: string }): JSX.Element | null {
 function RepoTable({ data }: { data: RepositoryPullRequests }): JSX.Element {
   const { repo, pullRequests } = data;
   return (
-    <Stack spacing={1}>
-      <Typography variant="h6" sx={{ lineHeight: 1, p: '15px' }}>
-        {repo.owner}/{repo.name}
+    <Stack spacing={0.5}>
+      <Typography variant="h6" sx={{ lineHeight: 1, px: '15px', pt: '10px', pb: '4px' }}>
+        {data.label ?? `${repo.owner}/${repo.name}`}
       </Typography>
       {pullRequests.length === 0 ? (
         <Typography color="text.secondary">No open pull requests.</Typography>
@@ -191,7 +191,7 @@ export default function App(): JSX.Element {
 
   return (
     <Container maxWidth={false} disableGutters>
-      <Stack spacing={4}>
+      <Stack spacing={1.5}>
         {repos.map((data) => (
           <RepoTable key={`${data.repo.owner}/${data.repo.name}`} data={data} />
         ))}
