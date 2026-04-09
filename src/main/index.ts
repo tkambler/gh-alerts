@@ -217,7 +217,9 @@ async function fetchPrsForRepo(
       if (!allCompleted) {
         statusCheckRollup = 'PENDING';
       } else {
-        const allSuccess = pr.statusCheckRollup.every((c) => c.conclusion === 'SUCCESS');
+        const allSuccess = pr.statusCheckRollup.every((c) =>
+          ['SUCCESS', 'SKIPPED', 'NEUTRAL'].includes(c.conclusion),
+        );
         statusCheckRollup = allSuccess ? 'SUCCESS' : 'FAILURE';
       }
     }
