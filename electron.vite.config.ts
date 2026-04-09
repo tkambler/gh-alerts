@@ -14,6 +14,11 @@ export default defineConfig({
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),
+        '@repo/gridkit-react': resolve('lib/gridkit/react/index.js'),
+        '@repo/gridkit-core': resolve('lib/gridkit/core/core.js'),
+        '@repo/gridkit-vanilla': resolve('lib/gridkit/vanilla/index.js'),
+        '@repo/gridkit-charts': resolve('lib/gridkit/charts/index.js'),
+        '@repo/types': resolve('lib/gridkit/types/index.js'),
       },
     },
   },

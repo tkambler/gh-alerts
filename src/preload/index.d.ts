@@ -7,6 +7,7 @@ declare global {
     api: {
       preflight: () => Promise<PreflightResult>;
       readCache: () => Promise<RepositoryPullRequests[] | null>;
+      cacheAge: () => Promise<number>;
       fetchPullRequests: (config: Config) => Promise<RepositoryPullRequests[]>;
     };
   }

@@ -7,16 +7,9 @@ import {
   CircularProgress,
   Alert,
   Stack,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Link,
 } from '@mui/material';
+import { GridKit, useGridEngine } from '@repo/gridkit-react';
+import type { RowKey } from '@repo/types';
 import type { Config, PreflightResult, PullRequest, RepositoryPullRequests } from '../../types';
 
 function formatDate(iso: string): string {
@@ -79,18 +72,14 @@ function notifyOS(diff: PrDiff): void {
   } else {
     body = 'Pull requests updated';
   }
-  new window.Notification('gh-alerts', { body });
+  new window.Notification('PR Pulse', { body });
 }
 
-function StatusChip({ status }: { status: string }): JSX.Element | null {
-  if (!status) return null;
-  const colorMap: Record<string, 'success' | 'error' | 'warning' | 'default'> = {
-    SUCCESS: 'success',
-    FAILURE: 'error',
-    PENDING: 'warning',
-  };
-  return <Chip label={status} size="small" color={colorMap[status] ?? 'default'} />;
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+type PrRow = PullRequest & { repoLabel: string; repoUrl: string };
 
 function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Element {
   const rows = repos
@@ -103,73 +92,140 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
     )
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
+  const engine = useGridEngine<PrRow>({
+    fields: [
+      {
+        dataKey: 'repoLabel',
+        title: 'Repository',
+        flex: 1,
+        sortable: true,
+        render: ({ data }) =>
+          `<a href="${escapeHtml(data.repoUrl)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.repoLabel)}</a>`,
+      },
+      {
+        dataKey: 'number',
+        title: '#',
+        width: 100,
+        sortable: true,
+        render: ({ data }) =>
+          `<a href="${escapeHtml(data.url)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${data.number}</a>`,
+      },
+      {
+        dataKey: 'title',
+        title: 'Title',
+        flex: 2,
+        sortable: true,
+        render: ({ data }) =>
+          `<a href="${escapeHtml(data.url)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.title)}</a>`,
+      },
+      {
+        dataKey: 'state',
+        title: 'State',
+        width: 70,
+        sortable: true,
+        format: ({ value }) => String(value).charAt(0).toUpperCase() + String(value).slice(1),
+      },
+      {
+        dataKey: 'draft',
+        title: 'Draft',
+        width: 65,
+        sortable: true,
+        format: ({ value }) => (value ? 'Yes' : 'No'),
+      },
+      {
+        dataKey: 'author',
+        title: 'Author',
+        width: 120,
+        sortable: true,
+        render: ({ data }) =>
+          `<a href="https://github.com/${escapeHtml(data.author)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.author)}</a>`,
+      },
+      {
+        dataKey: 'createdAt',
+        title: 'Created',
+        width: 110,
+        sortable: true,
+        format: ({ value }) => `${formatAge(String(value))} ago`,
+      },
+      {
+        dataKey: 'updatedAt',
+        title: 'Updated',
+        width: 110,
+        sortable: true,
+        format: ({ value }) => `${formatAge(String(value))} ago`,
+      },
+      {
+        dataKey: 'comments',
+        title: 'Comments',
+        width: 105,
+        sortable: true,
+        style: { textAlign: 'right' },
+      },
+      {
+        dataKey: 'labels',
+        title: 'Labels',
+        flex: 1,
+        render: ({ data }) => {
+          if (data.labels.length === 0) return '-';
+          return data.labels
+            .map(
+              (label) =>
+                `<span style="display:inline-block;padding:2px 8px;margin:1px 2px;border-radius:12px;font-size:12px;background:#e0e0e0">${escapeHtml(label)}</span>`,
+            )
+            .join('');
+        },
+      },
+      {
+        dataKey: 'statusCheckRollup',
+        title: 'Status',
+        width: 90,
+        sortable: true,
+        render: ({ value }) => {
+          if (!value) return '';
+          const colorMap: Record<string, string> = {
+            SUCCESS: '#2e7d32',
+            FAILURE: '#d32f2f',
+            PENDING: '#ed6c02',
+          };
+          const bg = colorMap[String(value)] ?? '#9e9e9e';
+          return `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;color:#fff;background:${bg}">${escapeHtml(String(value))}</span>`;
+        },
+      },
+    ],
+    rowHeight: 42,
+    suppressColumnMenu: true,
+    panel: {
+      tabs: [{ id: 'columns', labelDefault: 'Columns' }],
+      defaultTab: 'columns',
+      hiddenByDefault: false,
+      width: 400,
+    },
+    rowKeyGetter: (data) => `${data.repo.owner}/${data.repo.name}/${data.number}` as RowKey,
+    theme: { base: 'material', colorScheme: 'light', params: { sidebarWidth: '400px' } },
+  });
+
+  useEffect(() => {
+    engine.loadData(rows);
+  }, [engine, repos]);
+
+  const statusBarHeight = 37;
+  const [gridHeight, setGridHeight] = useState(() => window.innerHeight - statusBarHeight);
+
+  useEffect(() => {
+    const onResize = (): void => setGridHeight(window.innerHeight - statusBarHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   if (rows.length === 0) {
     return <Typography color="text.secondary">No open pull requests.</Typography>;
   }
 
   return (
-    <TableContainer component={Paper} variant="outlined" sx={{ borderLeft: 'none', borderRight: 'none', borderRadius: 0 }}>
-      <Table size="small">
-        <TableHead>
-          <TableRow sx={{ backgroundColor: '#F0F0F0' }}>
-            <TableCell sx={{ fontWeight: 'bold' }}>Repository</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>#</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Title</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>State</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Draft</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Author</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Created</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Updated</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Comments</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Labels</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((pr, index) => (
-            <TableRow key={`${pr.repo.owner}/${pr.repo.name}/${pr.number}`} sx={{ backgroundColor: index % 2 === 0 ? '#fff' : '#F4F7FA' }}>
-              <TableCell>
-                <Link href={pr.repoUrl} target="_blank" rel="noopener" underline="hover">
-                  {pr.repoLabel}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link href={pr.url} target="_blank" rel="noopener" underline="hover">
-                  {pr.number}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link href={pr.url} target="_blank" rel="noopener" underline="hover">
-                  {pr.title}
-                </Link>
-              </TableCell>
-              <TableCell>{pr.state.charAt(0).toUpperCase() + pr.state.slice(1)}</TableCell>
-              <TableCell>{pr.draft ? 'Yes' : 'No'}</TableCell>
-              <TableCell>
-                <Link href={`https://github.com/${pr.author}`} target="_blank" rel="noopener" underline="hover">
-                  {pr.author}
-                </Link>
-              </TableCell>
-              <TableCell>{formatAge(pr.createdAt)} ago</TableCell>
-              <TableCell>{formatAge(pr.updatedAt)} ago</TableCell>
-              <TableCell align="right">{pr.comments}</TableCell>
-              <TableCell>
-                {pr.labels.length === 0 ? '-' : (
-                  <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                    {pr.labels.map((label) => (
-                      <Chip key={label} label={label} size="small" />
-                    ))}
-                  </Stack>
-                )}
-              </TableCell>
-              <TableCell>
-                <StatusChip status={pr.statusCheckRollup} />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <>
+      <style>{'.gk-row { align-items: stretch; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; }'}</style>
+      <GridKit engine={engine} style={{ height: gridHeight }} />
+    </>
   );
 }
 
@@ -208,13 +264,21 @@ export default function App(): JSX.Element {
     window.api.preflight().then(async (r) => {
       setResult(r);
       if (r.errors.length === 0 && r.config) {
-        const cached = await window.api.readCache();
+        const [cached, cacheAge] = await Promise.all([
+          window.api.readCache(),
+          window.api.cacheAge().catch(() => Infinity),
+        ]);
         if (cached) {
           setRepos(cached);
           lastDataRef.current = cached;
         }
 
-        fetchAndNotify(r.config);
+        const cacheIsFresh = cached && cacheAge < r.config.refreshInterval;
+        if (!cacheIsFresh) {
+          fetchAndNotify(r.config);
+        } else {
+          setLastUpdatedAt(new Date(Date.now() - cacheAge));
+        }
 
         const interval = setInterval(() => fetchAndNotify(r.config!), r.config.refreshInterval);
         return () => clearInterval(interval);
@@ -261,8 +325,8 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <AllPRsTable repos={repos} />
       </Box>
       <Box

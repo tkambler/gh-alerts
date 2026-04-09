@@ -5,6 +5,7 @@ const api = {
   preflight: (): Promise<import('../types').PreflightResult> => ipcRenderer.invoke('preflight'),
   readCache: (): Promise<import('../types').RepositoryPullRequests[] | null> =>
     ipcRenderer.invoke('read-cache'),
+  cacheAge: (): Promise<number> => ipcRenderer.invoke('cache-age'),
   fetchPullRequests: (
     config: import('../types').Config,
   ): Promise<import('../types').RepositoryPullRequests[]> =>

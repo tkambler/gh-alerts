@@ -6,7 +6,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@renderer/*": ["src/renderer/src/*"]
+      "@renderer/*": ["src/renderer/src/*"],
+      "@repo/gridkit-react": ["lib/gridkit/react/index.d.ts"],
+      "@repo/gridkit-core": ["lib/gridkit/core/core.d.ts"],
+      "@repo/gridkit-vanilla": ["lib/gridkit/vanilla/index.d.ts"],
+      "@repo/gridkit-charts": ["lib/gridkit/charts/index.d.ts"],
+      "@repo/types": ["lib/gridkit/types/index.d.ts"]
     }
   }
 }

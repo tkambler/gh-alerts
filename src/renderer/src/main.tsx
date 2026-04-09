@@ -10,8 +10,9 @@ const theme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
-        html: { margin: 0, padding: 0 },
-        body: { margin: 0, padding: 0 },
+        html: { margin: 0, padding: 0, height: '100%' },
+        body: { margin: 0, padding: 0, height: '100%' },
+        '#root': { height: '100%' },
       },
     },
   },

@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
-import { readFile, writeFile, mkdir, access } from 'fs/promises';
+import { readFile, writeFile, mkdir, access, stat } from 'fs/promises';
 import { homedir } from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -44,7 +44,7 @@ function createWindow(): void {
     width: 1900,
     height: 1100,
     show: false,
-    icon: join(__dirname, '../../resources/logo.png'),
+    icon: join(__dirname, '../../resources/pr-pulse-logo.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -269,6 +269,14 @@ async function preflight(): Promise<PreflightResult> {
 app.whenReady().then(() => {
   ipcMain.handle('preflight', () => preflight());
   ipcMain.handle('read-cache', () => readCache());
+  ipcMain.handle('cache-age', async () => {
+    try {
+      const s = await stat(CACHE_PATH);
+      return Date.now() - s.mtimeMs;
+    } catch {
+      return Infinity;
+    }
+  });
   ipcMain.handle('fetch-pull-requests', async (_event, config: Config) =>
     fetchAllPullRequests(config),
   );

@@ -1,7 +1,7 @@
 {
   "name": "gh-alerts",
   "version": "0.1.0",
-  "description": "GitHub Alerts",
+  "description": "PR Pulse",
   "main": "./out/main/index.js",
   "packageManager": "yarn@3.6.1",
   "scripts": {
@@ -14,8 +14,8 @@
     "format:check": "prettier --check ."
   },
   "build": {
-    "appId": "com.gh-alerts.app",
-    "productName": "GitHub Alerts",
+    "appId": "com.pr-pulse.app",
+    "productName": "PR Pulse",
     "directories": {
       "output": "dist"
     },
@@ -31,7 +31,7 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.developer-tools",
-      "icon": "resources/logo.png"
+      "icon": "resources/pr-pulse-logo.png"
     }
   },
   "devDependencies": {
@@ -55,6 +55,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^9.0.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "zod": "^4.3.6"
   }
 }
