@@ -151,7 +151,10 @@ type RawPR = {
   headRefName: string;
   comments: Array<unknown>;
   labels: Array<{ name: string }>;
-  statusCheckRollup: Array<{ status: string; conclusion: string }>;
+  statusCheckRollup: Array<
+    | { __typename: 'CheckRun'; status: string; conclusion: string }
+    | { __typename: 'StatusContext'; state: string }
+  >;
   createdAt: string;
   updatedAt: string;
 };
@@ -217,14 +220,19 @@ async function fetchPrsForRepo(
   const pullRequests = filtered.map((pr) => {
     let statusCheckRollup = '';
     if (pr.statusCheckRollup.length > 0) {
-      const allCompleted = pr.statusCheckRollup.every((c) => c.status === 'COMPLETED');
-      if (!allCompleted) {
+      const isCompleted = (c: RawPR['statusCheckRollup'][number]): boolean =>
+        c.__typename === 'StatusContext' || c.status === 'COMPLETED';
+      const isSuccess = (c: RawPR['statusCheckRollup'][number]): boolean =>
+        c.__typename === 'StatusContext'
+          ? c.state === 'SUCCESS'
+          : ['SUCCESS', 'SKIPPED', 'NEUTRAL'].includes(c.conclusion);
+
+      if (!pr.statusCheckRollup.every(isCompleted)) {
+        statusCheckRollup = 'PENDING';
+      } else if (pr.statusCheckRollup.some((c) => c.__typename === 'StatusContext' && c.state === 'PENDING')) {
         statusCheckRollup = 'PENDING';
       } else {
-        const allSuccess = pr.statusCheckRollup.every((c) =>
-          ['SUCCESS', 'SKIPPED', 'NEUTRAL'].includes(c.conclusion),
-        );
-        statusCheckRollup = allSuccess ? 'SUCCESS' : 'FAILURE';
+        statusCheckRollup = pr.statusCheckRollup.every(isSuccess) ? 'SUCCESS' : 'FAILURE';
       }
     }
     return {

@@ -6,6 +6,7 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  Link,
   Stack,
 } from '@mui/material';
 import { GridKit, useGridEngine } from '@repo/gridkit-react';
@@ -124,6 +125,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
         title: 'State',
         width: 70,
         sortable: true,
+        visible: false,
         format: ({ value }) => String(value).charAt(0).toUpperCase() + String(value).slice(1),
       },
       {
@@ -140,6 +142,14 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
         sortable: true,
         render: ({ data }) =>
           `<a href="https://github.com/${escapeHtml(data.author)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.author)}</a>`,
+      },
+      {
+        dataKey: 'headRefName',
+        title: 'Branch',
+        flex: 1,
+        sortable: true,
+        render: ({ data }) =>
+          `<a href="${escapeHtml(data.repoUrl)}/tree/${escapeHtml(data.headRefName)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.headRefName)}</a>`,
       },
       {
         dataKey: 'createdAt',
@@ -226,7 +236,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
 
   return (
     <>
-      <style>{'.gk-row { align-items: stretch; } .gk-row:nth-child(even) { background-color: #f5f5f5; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; }'}</style>
+      <style>{'.gk-row { align-items: stretch; } .gk-row:nth-child(even) { background-color: #f5f5f5; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-cell:focus, .gk-cell:focus-visible { outline: none !important; box-shadow: none !important; border-color: transparent !important; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; }'}</style>
       <GridKit engine={engine} style={{ height: gridHeight }} />
     </>
   );
@@ -395,9 +405,25 @@ export default function App(): JSX.Element {
           minHeight: 36,
         }}
       >
-        <Typography variant="caption" color="text.secondary">
-          {lastUpdatedAt ? `Last updated: ${lastUpdatedAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ''}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            {lastUpdatedAt ? `Last updated: ${lastUpdatedAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ''}
+          </Typography>
+          {result?.config && (
+            <Link
+              component="button"
+              variant="caption"
+              underline={fetching ? 'none' : 'hover'}
+              onClick={() => fetchAndNotify(result.config!)}
+              sx={{
+                pointerEvents: fetching ? 'none' : 'auto',
+                color: fetching ? 'text.disabled' : undefined,
+              }}
+            >
+              Refresh Now
+            </Link>
+          )}
+        </Box>
         {fetching && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircularProgress size={14} thickness={5} />
