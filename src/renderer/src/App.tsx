@@ -201,7 +201,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
     panel: {
       tabs: [{ id: 'columns', labelDefault: 'Columns' }],
       defaultTab: 'columns',
-      hiddenByDefault: true,
+      hiddenByDefault: false,
       width: 400,
     },
     rowKeyGetter: (data) => `${data.repo.owner}/${data.repo.name}/${data.number}` as RowKey,
@@ -209,6 +209,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
   });
 
   useEffect(() => {
+    engine.closePanelTab();
     engine.setGroupFields(['repoLabel' as FieldId]);
     engine.loadData(rows);
   }, [engine, repos]);
@@ -228,7 +229,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
 
   return (
     <>
-      <style>{'.gk-row { align-items: stretch; } .gk-row:nth-child(even) { background-color: #f5f5f5; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-cell:focus, .gk-cell:focus-visible { outline: none !important; box-shadow: none !important; border-color: transparent !important; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; }'}</style>
+      <style>{'.gk-row { align-items: stretch; } .gk-row:nth-child(even) { background-color: #f5f5f5; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-cell:focus, .gk-cell:focus-visible, .gk-cell-focused { outline: none !important; box-shadow: none !important; border-color: transparent !important; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; }'}</style>
       <GridKit engine={engine} style={{ height: gridHeight }} />
     </>
   );
