@@ -121,7 +121,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
           const title = `<a href="${escapeHtml(data.url)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.title)}</a>`;
           if (data.labels.length === 0) return title;
           const labels = data.labels.map((l) => escapeHtml(l)).join(', ');
-          return `<div style="display:flex;flex-direction:column;gap:2px;padding:2px 0"><div>${title}</div><div style="font-size:11px;color:#666">Labels: ${labels}</div></div>`;
+          return `<div style="display:flex;flex-direction:column;gap:2px;padding:2px 0"><div>${title}</div><div style="font-size:11px;color:#444">Labels: ${labels}</div></div>`;
         },
       },
       {
@@ -190,8 +190,8 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
             FAILURE: '#d32f2f',
             PENDING: '#ed6c02',
           };
-          const bg = colorMap[String(value)] ?? '#9e9e9e';
-          return `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;color:#fff;background:${bg}">${escapeHtml(String(value))}</span>`;
+          const color = colorMap[String(value)] ?? '#9e9e9e';
+          return `<span style="font-weight:bold;color:${color}">${escapeHtml(String(value))}</span>`;
         },
       },
     ],
@@ -201,7 +201,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
     panel: {
       tabs: [{ id: 'columns', labelDefault: 'Columns' }],
       defaultTab: 'columns',
-      hiddenByDefault: false,
+      hiddenByDefault: true,
       width: 400,
     },
     rowKeyGetter: (data) => `${data.repo.owner}/${data.repo.name}/${data.number}` as RowKey,
