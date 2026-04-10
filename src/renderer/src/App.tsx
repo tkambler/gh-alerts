@@ -196,7 +196,6 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
       },
     ],
     rowHeight: 50,
-    groupExpandDepth: -1,
     suppressColumnMenu: true,
     panel: {
       tabs: [{ id: 'columns', labelDefault: 'Columns' }],
@@ -212,6 +211,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
     engine.closePanelTab();
     engine.setGroupFields(['repoLabel' as FieldId]);
     engine.loadData(rows);
+    engine.expandAll();
   }, [engine, repos]);
 
   const statusBarHeight = 37;
@@ -223,14 +223,33 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const onClick = (e: MouseEvent): void => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.gk-group-expand')) return;
+      const groupRow = target.closest('.gk-row[data-group="true"]');
+      if (!groupRow) return;
+      const toggle = groupRow.querySelector<HTMLElement>('.gk-group-expand');
+      if (toggle) toggle.click();
+    };
+    el.addEventListener('click', onClick);
+    return () => el.removeEventListener('click', onClick);
+  }, []);
+
   if (rows.length === 0) {
     return <Typography color="text.secondary">No open pull requests.</Typography>;
   }
 
   return (
     <>
-      <style>{'.gk-row { align-items: stretch; } .gk-row:nth-child(even) { background-color: #f5f5f5; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-cell:focus, .gk-cell:focus-visible, .gk-cell-focused { outline: none !important; box-shadow: none !important; border-color: transparent !important; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; }'}</style>
-      <GridKit engine={engine} style={{ height: gridHeight }} />
+      <style>{'.gk-row { align-items: stretch; } .gk-row:nth-child(even) { background-color: #f5f5f5; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-cell:focus, .gk-cell:focus-visible, .gk-cell-focused { outline: none !important; box-shadow: none !important; border-color: transparent !important; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; cursor: pointer; }'}</style>
+      <div ref={gridRef}>
+        <GridKit engine={engine} style={{ height: gridHeight }} />
+      </div>
     </>
   );
 }
