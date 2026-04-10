@@ -211,6 +211,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
     engine.closePanelTab();
     engine.setGroupFields(['repoLabel' as FieldId]);
     engine.loadData(rows);
+    engine.setSortRules([{ id: 'updatedAt' as FieldId, sort: 'desc' }]);
     engine.expandAll();
   }, [engine, repos]);
 
