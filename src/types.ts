@@ -44,3 +44,14 @@ export interface RepositoryPullRequests {
   label?: string;
   pullRequests: PullRequest[];
 }
+
+export interface RepoFetchError {
+  repo: Repository;
+  label?: string;
+  error: string;
+}
+
+export interface FetchResult {
+  repos: RepositoryPullRequests[];
+  errors: RepoFetchError[];
+}

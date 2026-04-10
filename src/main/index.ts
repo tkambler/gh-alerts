@@ -7,8 +7,10 @@ import { promisify } from 'util';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import type {
   Config,
+  FetchResult,
   PreflightResult,
   PullRequest,
+  RepoFetchError,
   RepositoryConfig,
   RepositoryPullRequests,
 } from '../types';
@@ -43,6 +45,8 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1900,
     height: 1100,
+    minWidth: 1200,
+    minHeight: 800,
     show: false,
     icon: join(__dirname, '../../resources/pr-pulse-logo.png'),
     webPreferences: {
@@ -248,12 +252,42 @@ async function fetchPrsForRepo(
   return { repo: { owner, name }, label: repo.label, pullRequests };
 }
 
-async function fetchAllPullRequests(config: Config): Promise<RepositoryPullRequests[]> {
-  const results = await Promise.all(
+async function fetchAllPullRequests(config: Config): Promise<FetchResult> {
+  const settled = await Promise.allSettled(
     config.repositories.map((repo) => fetchPrsForRepo(repo, config.username)),
   );
-  await writeCache(results);
-  return results;
+
+  const repos: RepositoryPullRequests[] = [];
+  const errors: RepoFetchError[] = [];
+
+  settled.forEach((result, index) => {
+    const repoConfig = config.repositories[index];
+    if (result.status === 'fulfilled') {
+      repos.push(result.value);
+    } else {
+      const { owner, name } = parseRepoUrl(repoConfig.url);
+      errors.push({
+        repo: { owner, name },
+        label: repoConfig.label,
+        error: String(result.reason),
+      });
+    }
+  });
+
+  if (repos.length > 0) {
+    const existingCache = await readCache();
+    if (existingCache && errors.length > 0) {
+      const freshKeys = new Set(repos.map((r) => `${r.repo.owner}/${r.repo.name}`));
+      const staleEntries = existingCache.filter(
+        (cached) => !freshKeys.has(`${cached.repo.owner}/${cached.repo.name}`),
+      );
+      await writeCache([...repos, ...staleEntries]);
+    } else {
+      await writeCache(repos);
+    }
+  }
+
+  return { repos, errors };
 }
 
 async function preflight(): Promise<PreflightResult> {

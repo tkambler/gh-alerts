@@ -8,7 +8,7 @@ const api = {
   cacheAge: (): Promise<number> => ipcRenderer.invoke('cache-age'),
   fetchPullRequests: (
     config: import('../types').Config,
-  ): Promise<import('../types').RepositoryPullRequests[]> =>
+  ): Promise<import('../types').FetchResult> =>
     ipcRenderer.invoke('fetch-pull-requests', config),
 };
 

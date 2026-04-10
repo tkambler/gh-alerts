@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { GridKit, useGridEngine } from '@repo/gridkit-react';
 import type { RowKey } from '@repo/types';
-import type { Config, PreflightResult, PullRequest, RepositoryPullRequests } from '../../types';
+import type { Config, FetchResult, PreflightResult, PullRequest, RepositoryPullRequests } from '../../types';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -223,7 +223,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
 
   return (
     <>
-      <style>{'.gk-row { align-items: stretch; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; }'}</style>
+      <style>{'.gk-row { align-items: stretch; } .gk-row:nth-child(even) { background-color: #f5f5f5; } .gk-cell { display: flex; align-items: center; } .gk-grid { border-bottom: none; } .gk-header { border-bottom: 1px solid var(--gk-border-color, #ddd); } .gk-header-cell:last-child, .gk-cell:last-child { border-right: none; } .gk-filter-btn, .gk-menu-btn, .gk-group-btn { display: none !important; } .gk-row .gk-cell:first-child { padding-left: 12px !important; } .gk-row[data-group="true"] .gk-cell { padding-left: 12px !important; }'}</style>
       <GridKit engine={engine} style={{ height: gridHeight }} />
     </>
   );
@@ -232,7 +232,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
 export default function App(): JSX.Element {
   const [result, setResult] = useState<PreflightResult | null>(null);
   const [repos, setRepos] = useState<RepositoryPullRequests[] | null>(null);
-  const [prError, setPrError] = useState<string | null>(null);
+  const [fetchWarnings, setFetchWarnings] = useState<string[]>([]);
   const [fetching, setFetching] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
@@ -243,17 +243,45 @@ export default function App(): JSX.Element {
     setFetching(true);
     window.api
       .fetchPullRequests(config)
-      .then((data) => {
-        const diff = diffData(lastDataRef.current, data);
-        setRepos(data);
-        lastDataRef.current = data;
-        if (diff.changed) {
-          ping.currentTime = 0;
-          ping.play();
-          notifyOS(diff);
+      .then((result: FetchResult) => {
+        if (result.errors.length > 0) {
+          setFetchWarnings(
+            result.errors.map(
+              (e) =>
+                `Failed to fetch ${e.label ?? `${e.repo.owner}/${e.repo.name}`}: ${e.error}`,
+            ),
+          );
+        } else {
+          setFetchWarnings([]);
+        }
+
+        if (result.repos.length > 0) {
+          let mergedData: RepositoryPullRequests[];
+          if (result.errors.length > 0 && lastDataRef.current) {
+            const freshKeys = new Set(
+              result.repos.map((r) => `${r.repo.owner}/${r.repo.name}`),
+            );
+            const staleRepos = lastDataRef.current.filter(
+              (r) => !freshKeys.has(`${r.repo.owner}/${r.repo.name}`),
+            );
+            mergedData = [...result.repos, ...staleRepos];
+          } else {
+            mergedData = result.repos;
+          }
+
+          const diff = diffData(lastDataRef.current, mergedData);
+          setRepos(mergedData);
+          lastDataRef.current = mergedData;
+          if (diff.changed) {
+            ping.currentTime = 0;
+            ping.play();
+            notifyOS(diff);
+          }
         }
       })
-      .catch((err) => setPrError(String(err)))
+      .catch((err) => {
+        setFetchWarnings([`Fetch failed: ${String(err)}`]);
+      })
       .finally(() => {
         setFetching(false);
         setLastUpdatedAt(new Date());
@@ -308,15 +336,20 @@ export default function App(): JSX.Element {
     );
   }
 
-  if (prError) {
-    return (
-      <Container sx={{ p: 0 }}>
-        <Alert severity="error">{prError}</Alert>
-      </Container>
-    );
-  }
-
   if (!repos) {
+    if (fetchWarnings.length > 0) {
+      return (
+        <Container sx={{ p: 2 }}>
+          <Stack spacing={1}>
+            {fetchWarnings.map((warning, i) => (
+              <Alert key={i} severity="error">
+                {warning}
+              </Alert>
+            ))}
+          </Stack>
+        </Container>
+      );
+    }
     return (
       <Container sx={{ display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
@@ -326,6 +359,22 @@ export default function App(): JSX.Element {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {fetchWarnings.length > 0 && (
+        <Box sx={{ px: 1, pt: 1, flexShrink: 0 }}>
+          {fetchWarnings.map((warning, i) => (
+            <Alert
+              key={i}
+              severity="warning"
+              sx={{ mb: 0.5 }}
+              onClose={() =>
+                setFetchWarnings((prev) => prev.filter((_, j) => j !== i))
+              }
+            >
+              {warning}
+            </Alert>
+          ))}
+        </Box>
+      )}
       <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <AllPRsTable repos={repos} />
       </Box>
