@@ -9,7 +9,7 @@ import {
   Stack,
 } from '@mui/material';
 import { GridKit, useGridEngine } from '@repo/gridkit-react';
-import type { RowKey } from '@repo/types';
+import type { FieldId, RowKey } from '@repo/types';
 import type { Config, FetchResult, PreflightResult, PullRequest, RepositoryPullRequests } from '../../types';
 
 function formatDate(iso: string): string {
@@ -99,6 +99,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
         title: 'Repository',
         flex: 1,
         sortable: true,
+        visible: false,
         render: ({ data }) =>
           `<a href="${escapeHtml(data.repoUrl)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.repoLabel)}</a>`,
       },
@@ -193,6 +194,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
       },
     ],
     rowHeight: 42,
+    groupExpandDepth: -1,
     suppressColumnMenu: true,
     panel: {
       tabs: [{ id: 'columns', labelDefault: 'Columns' }],
@@ -205,6 +207,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
   });
 
   useEffect(() => {
+    engine.setGroupFields(['repoLabel' as FieldId]);
     engine.loadData(rows);
   }, [engine, repos]);
 

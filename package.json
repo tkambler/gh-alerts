@@ -1,5 +1,5 @@
 {
-  "name": "gh-alerts",
+  "name": "pr-pulse",
   "version": "0.1.0",
   "description": "PR Pulse",
   "main": "./out/main/index.js",

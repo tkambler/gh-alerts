@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron';
+import { app, shell, BrowserWindow, ipcMain, Menu, MenuItem } from 'electron';
 import { join } from 'path';
 import { readFile, writeFile, mkdir, access, stat } from 'fs/promises';
 import { homedir } from 'os';
@@ -318,6 +318,20 @@ app.whenReady().then(() => {
   );
 
   electronApp.setAppUserModelId('com.electron');
+
+  const defaultMenu = Menu.getApplicationMenu();
+  if (defaultMenu && defaultMenu.items.length > 0) {
+    const appMenu = defaultMenu.items[0];
+    appMenu.submenu?.insert(
+      1,
+      new MenuItem({
+        label: 'Settings',
+        accelerator: 'CmdOrCtrl+,',
+        click: () => shell.openPath(CONFIG_PATH),
+      }),
+    );
+    Menu.setApplicationMenu(defaultMenu);
+  }
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);
