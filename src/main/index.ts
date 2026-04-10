@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, Menu, MenuItem } from 'electron';
 import { join } from 'path';
-import { readFile, writeFile, mkdir, access, stat } from 'fs/promises';
+import { readFile, writeFile, mkdir, access, stat, unlink } from 'fs/promises';
 import { homedir } from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -101,17 +101,27 @@ async function checkGhCli(): Promise<boolean> {
 
 const MIN_REFRESH_INTERVAL = 60_000;
 
-const DEFAULT_CONFIG: Config = {
-  repositories: [],
-  refreshInterval: MIN_REFRESH_INTERVAL,
+const DEFAULT_CONFIG = {
+  username: 'my_github_username',
+  repositories: [
+    {
+      label: 'My Repository',
+      url: 'git@github.com:org/name.git',
+      authors: ['my_github_username'],
+    },
+  ],
+  refreshInterval: 120_000,
 };
 
-async function ensureConfig(): Promise<void> {
+async function ensureConfig(): Promise<boolean> {
   try {
     await access(CONFIG_PATH);
+    return false;
   } catch {
     await mkdir(GH_ALERTS_DIR, { recursive: true });
     await writeFile(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
+    await unlink(CACHE_PATH).catch(() => {});
+    return true;
   }
 }
 
@@ -312,6 +322,7 @@ async function preflight(): Promise<PreflightResult> {
 
 app.whenReady().then(() => {
   ipcMain.handle('preflight', () => preflight());
+  ipcMain.handle('open-settings', () => shell.openPath(CONFIG_PATH));
   ipcMain.handle('read-cache', () => readCache());
   ipcMain.handle('cache-age', async () => {
     try {

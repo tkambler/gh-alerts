@@ -82,7 +82,7 @@ function escapeHtml(str: string): string {
 
 type PrRow = PullRequest & { repoLabel: string; repoUrl: string };
 
-function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Element {
+function AllPRsTable({ repos, fetching }: { repos: RepositoryPullRequests[]; fetching: boolean }): JSX.Element {
   const rows = repos
     .flatMap((data) =>
       data.pullRequests.map((pr) => ({
@@ -242,7 +242,21 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
   }, []);
 
   if (rows.length === 0) {
-    return <Typography color="text.secondary">No open pull requests.</Typography>;
+    if (fetching) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', gap: 1 }}>
+        <Typography color="text.secondary">No open pull requests.</Typography>
+        <Link component="button" variant="body2" underline="hover" onClick={() => window.api.openSettings()}>
+          Settings
+        </Link>
+      </Box>
+    );
   }
 
   return (
@@ -342,9 +356,9 @@ export default function App(): JSX.Element {
 
   if (!result) {
     return (
-      <Container sx={{ display: 'flex', justifyContent: 'center' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
         <CircularProgress />
-      </Container>
+      </Box>
     );
   }
 
@@ -377,9 +391,9 @@ export default function App(): JSX.Element {
       );
     }
     return (
-      <Container sx={{ display: 'flex', justifyContent: 'center' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
         <CircularProgress />
-      </Container>
+      </Box>
     );
   }
 
@@ -401,8 +415,8 @@ export default function App(): JSX.Element {
           ))}
         </Box>
       )}
-      <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <AllPRsTable repos={repos} />
+      <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
+        <AllPRsTable repos={repos} fetching={fetching} />
       </Box>
       <Box
         sx={{

@@ -10,6 +10,7 @@ const api = {
     config: import('../types').Config,
   ): Promise<import('../types').FetchResult> =>
     ipcRenderer.invoke('fetch-pull-requests', config),
+  openSettings: (): Promise<void> => ipcRenderer.invoke('open-settings'),
 };
 
 if (process.contextIsolated) {
