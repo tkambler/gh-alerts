@@ -117,8 +117,12 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
         title: 'Title',
         flex: 2,
         sortable: true,
-        render: ({ data }) =>
-          `<a href="${escapeHtml(data.url)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.title)}</a>`,
+        render: ({ data }) => {
+          const title = `<a href="${escapeHtml(data.url)}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none">${escapeHtml(data.title)}</a>`;
+          if (data.labels.length === 0) return title;
+          const labels = data.labels.map((l) => escapeHtml(l)).join(', ');
+          return `<div style="display:flex;flex-direction:column;gap:2px;padding:2px 0"><div>${title}</div><div style="font-size:11px;color:#666">Labels: ${labels}</div></div>`;
+        },
       },
       {
         dataKey: 'state',
@@ -154,14 +158,16 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
       {
         dataKey: 'createdAt',
         title: 'Created',
-        width: 110,
+        width: 130,
+        maxWidth: 150,
         sortable: true,
         format: ({ value }) => `${formatAge(String(value))} ago`,
       },
       {
         dataKey: 'updatedAt',
         title: 'Updated',
-        width: 110,
+        width: 130,
+        maxWidth: 150,
         sortable: true,
         format: ({ value }) => `${formatAge(String(value))} ago`,
       },
@@ -171,20 +177,6 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
         width: 105,
         sortable: true,
         style: { textAlign: 'right' },
-      },
-      {
-        dataKey: 'labels',
-        title: 'Labels',
-        flex: 1,
-        render: ({ data }) => {
-          if (data.labels.length === 0) return '-';
-          return data.labels
-            .map(
-              (label) =>
-                `<span style="display:inline-block;padding:2px 8px;margin:1px 2px;border-radius:12px;font-size:12px;background:#e0e0e0">${escapeHtml(label)}</span>`,
-            )
-            .join('');
-        },
       },
       {
         dataKey: 'statusCheckRollup',
@@ -203,7 +195,7 @@ function AllPRsTable({ repos }: { repos: RepositoryPullRequests[] }): JSX.Elemen
         },
       },
     ],
-    rowHeight: 42,
+    rowHeight: 50,
     groupExpandDepth: -1,
     suppressColumnMenu: true,
     panel: {
