@@ -221,7 +221,7 @@ async function fetchPrsForRepo(
   const filtered: RawPR[] = [];
   for (const batch of results) {
     for (const pr of batch) {
-      if (!seen.has(pr.id)) {
+      if (!seen.has(pr.id) && (!pr.isDraft || pr.author.login === username)) {
         seen.add(pr.id);
         filtered.push(pr);
       }
